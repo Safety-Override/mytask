@@ -21,7 +21,7 @@ int main()
         tcp::socket s(io_service);
         s.connect(*iterator);
 
-        std::string my_id = ProcessRegistration(s);
+        std::string my_id = RegistrationRequest(s);
 
         while (true)
         {
@@ -41,36 +41,32 @@ int main()
             {
                 case 1:
                 {
-                    SendMessage(s, my_id, Requests::Hello, "");
-                    std::cout << ReadMessage(s);
+                    std::cout << HelloRequest(s, my_id);
                     break;
                 }
                 case 2:
                 {
-                    SendMessage(s, my_id, Requests::ActiveRequests, "");
-                    std::cout << ReadMessage(s);
+                    std::cout << ActiveRequestsRequest(s, my_id);
                     break;
                 }
                 case 3:
                 {
-                    SendMessage(s, my_id, Requests::Deals, "");
-                    std::cout << ReadMessage(s);
+                    std::cout << DealsRequest(s, my_id);
                     break;
                 }
                 case 4:
                 {
-                    SendMessage(s, my_id, Requests::Balance, "");
-                    std::cout << ReadMessage(s);
+                    std::cout << BalanceRequest(s, my_id);
                     break;
                 }
                 case 5:
                 {
-                    std::cout << ProcessSellRequest(s, my_id);
+                    std::cout << SellRequest(s, my_id);
                     break;
                 }
                 case 6:
                 {
-                    std::cout << ProcessBuyRequest(s, my_id);
+                    std::cout << BuyRequest(s, my_id);
                     break;
                 }
                 case 7:

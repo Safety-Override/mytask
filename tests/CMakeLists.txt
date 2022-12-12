@@ -14,11 +14,11 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 enable_testing()
 
+SET(CMAKE_CXX_FLAGS  "-Wfatal-errors")
+
 add_executable(
   test
   test.cc
-  ../ClientFunctions.cpp 
-  ../ServerFunctions.cpp
   ../Common.hpp 
   ../json.hpp
 )
