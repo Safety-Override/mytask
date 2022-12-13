@@ -103,8 +103,36 @@ int main()
             }
             SendMessage(s, my_id, request);
             response = nlohmann::json::parse(ReadMessage(s));
-            auto resType = response[MsgType];
-            if (resType == MessageTypes::Error) {
+            auto resType = static_cast<MessageTypes>(response[MsgType]);
+            switch(resType) {
+                case MessageTypes::Error:
+                    std::cout << ErrorResponse(response);
+                    break;
+                case MessageTypes::Hello:
+                    std::cout << HelloResponse(response);
+                    break;
+                case MessageTypes::ActiveRequests:
+                    std::cout << ActiveRequestsResponse(response);
+                    break;
+                case MessageTypes::Deals:
+                    std::cout << DealsResponse(response);
+                    break;
+                case MessageTypes::Balance:
+                    std::cout << BalanceResponse(response);
+                    break;
+                case MessageTypes::Sell:
+                    std::cout << SellResponse(response);
+                    break;
+                case MessageTypes::Buy:
+                    std::cout << BuyResponse(response);
+                    break;
+                default:
+                {
+                    std::cout << "Unknown error\n";
+                    break;
+                }
+            }
+            /*if (resType == MessageTypes::Error) {
                 std::cout << ErrorResponse(response);
             } else if (resType == MessageTypes::Hello) {
                 std::cout << HelloResponse(response);
@@ -120,7 +148,7 @@ int main()
                 std::cout << BuyResponse(response);
             } else {
                 std::cout << "Unknown error\n";
-            }
+            }*/
             
         }
     }

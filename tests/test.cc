@@ -108,13 +108,7 @@ TEST(DealsResponseTest, ClientFunctionsBasicChecks) {
 }
 
 TEST(BalanceResponseTest, ClientFunctionsBasicChecks) {
-  nlohmann::json rep;
-  rep[MsgType] = MessageTypes::Balance;
-  rep[Dollars] = profiles[id].dollars;
-  rep[Rubles] = profiles[id].rubles;
   
-  std::string ans = "Your Deals :\nYou sold to TestUser_4. Price: 2 Volume: 7\nYou sold to TestUser_5. Price: 3 Volume: 8\nYou bought from TestUser_15. Price: 4 Volume: 9\nYou bought from TestUser_16. Price: 5 Volume: 10\n";
-  ASSERT_EQ(DealsResponse(rep), ans);
 }
 
 //////////////////////////////////////////////////////////

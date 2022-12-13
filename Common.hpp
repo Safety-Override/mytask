@@ -38,16 +38,9 @@ constexpr char MsgType[] = "MsgType";
 constexpr char SellRequests[] = "SellRequests";
 constexpr char BuyRequests[] = "BuyRequests";
 
-namespace MessageTypes
+enum class MessageTypes
 {
-    constexpr char Error[] = "Err";
-    constexpr char Registration[] = "Reg";
-    constexpr char Hello[] = "Hel";
-    constexpr char ActiveRequests[] = "Act";
-    constexpr char Deals[] = "Dea";
-    constexpr char Balance[] = "Bal";
-    constexpr char Sell[] = "Sel";
-    constexpr char Buy[] = "Buy";
-}
+    Error, Registration, Hello, ActiveRequests, Deals, Balance, Sell, Buy
+};
 
 #endif //CLIENSERVERECN_COMMON_HPP
