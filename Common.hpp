@@ -8,8 +8,8 @@ static short port = 5555;
 
 namespace ns {
     struct Deal {
-        size_t price;
-        size_t volume;
+        long long price;
+        long long volume;
         std::string userName;
     };
 
@@ -26,7 +26,6 @@ namespace ns {
 
 constexpr char Price[] = "Price";
 constexpr char Volume[] = "Volume";
-
 
 constexpr char Rubles[] = "Rubles";
 constexpr char Dollars[] = "Dollars";

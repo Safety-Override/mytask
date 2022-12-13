@@ -21,8 +21,17 @@ int main()
         tcp::socket s(io_service);
         s.connect(*iterator);
 
-        std::string my_id = RegistrationRequest(s);
-
+        std::cout << "Hello! Enter your name: ";
+        std::string my_name;
+        std::cin >> my_name;
+        nlohmann::json request = RegistrationRequest(my_name);
+        SendMessage(s, "0", request);
+        nlohmann::json response = nlohmann::json::parse(ReadMessage(s));
+        if (response[MsgType] == MessageTypes::Error) {
+            std::cout << ErrorResponse(response);
+            exit(1);
+        }
+        std::string my_id = RegistrationResponse(response);
         while (true)
         {
             std::cout << "Menu:\n"
@@ -41,32 +50,44 @@ int main()
             {
                 case 1:
                 {
-                    std::cout << HelloRequest(s, my_id);
+                    request = HelloRequest();
                     break;
                 }
                 case 2:
                 {
-                    std::cout << ActiveRequestsRequest(s, my_id);
+                    request = ActiveRequestsRequest();
                     break;
                 }
                 case 3:
                 {
-                    std::cout << DealsRequest(s, my_id);
+                    request = DealsRequest();
                     break;
                 }
                 case 4:
                 {
-                    std::cout << BalanceRequest(s, my_id);
+                    request = BalanceRequest();
                     break;
                 }
                 case 5:
                 {
-                    std::cout << SellRequest(s, my_id);
+                    long long price_;
+                    long long volume_;
+                    std::cout << "Enter price: ";
+                    std::cin >> price_;
+                    std::cout << "Enter volume: ";
+                    std::cin >> volume_;
+                    request = SellRequest(price_, volume_);
                     break;
                 }
                 case 6:
                 {
-                    std::cout << BuyRequest(s, my_id);
+                    long long price_;
+                    long long volume_;
+                    std::cout << "Enter price: ";
+                    std::cin >> price_;
+                    std::cout << "Enter volume: ";
+                    std::cin >> volume_;
+                    request = BuyRequest(price_, volume_);
                     break;
                 }
                 case 7:
@@ -76,9 +97,31 @@ int main()
                 }
                 default:
                 {
-                    std::cout << "Unknown menu option\n" << std::endl;
+                    std::cout << "Unknown menu option\n";
+                    continue;
                 }
             }
+            SendMessage(s, my_id, request);
+            response = nlohmann::json::parse(ReadMessage(s));
+            auto resType = response[MsgType];
+            if (resType == MessageTypes::Error) {
+                std::cout << ErrorResponse(response);
+            } else if (resType == MessageTypes::Hello) {
+                std::cout << HelloResponse(response);
+            } else if (resType == MessageTypes::ActiveRequests) {
+                std::cout << ActiveRequestsResponse(response);
+            } else if (resType == MessageTypes::Deals) {
+                std::cout << DealsResponse(response);
+            } else if (resType == MessageTypes::Balance) {
+                std::cout << BalanceResponse(response);
+            } else if (resType == MessageTypes::Sell) {
+                std::cout << SellResponse(response);
+            } else if (resType == MessageTypes::Buy) {
+                std::cout << BuyResponse(response);
+            } else {
+                std::cout << "Unknown error\n";
+            }
+            
         }
     }
     catch (std::exception& e)
