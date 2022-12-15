@@ -106,14 +106,14 @@ public:
         if (!UserExists(aUserId)) {
             return GetError("Error : User doesn't exist.\n");
         }
-        if (price_ <= 0|| volume_ <= 0) {
+        if (price_ <= 0 || volume_ <= 0) {
             return GetError("Incorrect price or volume.\n");
         }
         const size_t id = std::stoi(aUserId);
         ProcessSell(id, price_, volume_);
         nlohmann::json rep;
         rep[MsgType] = MessageTypes::Sell;
-        rep[Message] = "Processed\n";
+        rep[Message] = "Processed.\n";
         return rep;
     }
 
@@ -122,14 +122,14 @@ public:
         if (!UserExists(aUserId)) {
             return GetError("Error : User doesn't exist.\n");
         }
-        if (price_ <= 0|| volume_ <= 0) {
+        if (price_ <= 0 || volume_ <= 0) {
             return GetError("Incorrect price or volume.\n");
         }
         const size_t id = std::stoi(aUserId);
         ProcessBuy(id, price_, volume_);
         nlohmann::json rep;
         rep[MsgType] = MessageTypes::Buy;
-        rep[Message] = "Processed\n";
+        rep[Message] = "Processed.\n";
         return rep;
     }
 private:
