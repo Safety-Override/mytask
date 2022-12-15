@@ -40,7 +40,14 @@ constexpr char BuyRequests[] = "BuyRequests";
 
 enum class MessageTypes
 {
-    Error, Registration, Hello, ActiveRequests, Deals, Balance, Sell, Buy
+    Error, 
+    Registration, 
+    Hello, 
+    ActiveRequests, 
+    Deals, 
+    Balance, 
+    Sell, 
+    Buy
 };
 
 #endif //CLIENSERVERECN_COMMON_HPP

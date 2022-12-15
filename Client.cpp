@@ -132,24 +132,6 @@ int main()
                     break;
                 }
             }
-            /*if (resType == MessageTypes::Error) {
-                std::cout << ErrorResponse(response);
-            } else if (resType == MessageTypes::Hello) {
-                std::cout << HelloResponse(response);
-            } else if (resType == MessageTypes::ActiveRequests) {
-                std::cout << ActiveRequestsResponse(response);
-            } else if (resType == MessageTypes::Deals) {
-                std::cout << DealsResponse(response);
-            } else if (resType == MessageTypes::Balance) {
-                std::cout << BalanceResponse(response);
-            } else if (resType == MessageTypes::Sell) {
-                std::cout << SellResponse(response);
-            } else if (resType == MessageTypes::Buy) {
-                std::cout << BuyResponse(response);
-            } else {
-                std::cout << "Unknown error\n";
-            }*/
-            
         }
     }
     catch (std::exception& e)

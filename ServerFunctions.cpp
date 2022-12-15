@@ -11,36 +11,35 @@ using boost::asio::ip::tcp;
 class Core
 {
 public:
-
-    std::string RegisterNewUser(const std::string& aUserName) {
+    nlohmann::json RegisterNewUser(const std::string& aUserName) {
         size_t newUserId = profiles.size();
         profiles[newUserId].userName = aUserName;
         nlohmann::json rep;
         rep[MsgType] = MessageTypes::Registration;
         rep[Message] = std::to_string(newUserId);
-        return rep.dump();
+        return rep;
     }
 
-    std::string GetError(const std::string aMessage) {
+    nlohmann::json GetError(const std::string aMessage) {
         nlohmann::json rep;
         rep[MsgType] = MessageTypes::Error;
         rep[Message] = aMessage;
-        return rep.dump();
+        return rep;
     }
 
-    std::string GetHello(const std::string& aUserId) {
-        if (UserExists(aUserId)) {
+    nlohmann::json GetHello(const std::string& aUserId) {
+        if (!UserExists(aUserId)) {
             return GetError("Error : User doesn't exist.\n");
         }
         nlohmann::json rep;
         rep[MsgType] = MessageTypes::Hello;
         rep[Message] = "Hello, " + GetUserName(aUserId) + "!\n";
-        return rep.dump();
+        return rep;
     }
     
-    std::string GetActiveRequests(const std::string& aUserId)
+    nlohmann::json GetActiveRequests(const std::string& aUserId)
     {
-        if (UserExists(aUserId)) {
+        if (!UserExists(aUserId)) {
             return GetError("Error : User doesn't exist.\n");
         }
         nlohmann::json rep;
@@ -60,12 +59,12 @@ public:
         }
         rep[SellRequests] = vSellRequests;
         rep[BuyRequests] = vBuyRequests;
-        return rep.dump();
+        return rep;
     }
 
-    std::string GetDeals(const std::string& aUserId)
+    nlohmann::json GetDeals(const std::string& aUserId)
     {
-        if (UserExists(aUserId)) {
+        if (!UserExists(aUserId)) {
             return GetError("Error : User doesn't exist.\n");
         }
         nlohmann::json rep;
@@ -86,12 +85,12 @@ public:
             }
         }
         rep[BuyRequests][DealsList] = vDealsList;
-        return rep.dump();
+        return rep;
     }
 
-    std::string GetBalance(const std::string& aUserId)
+    nlohmann::json GetBalance(const std::string& aUserId)
     {
-        if (UserExists(aUserId)) {
+        if (!UserExists(aUserId)) {
             return GetError("Error : User doesn't exist.\n");
         }
         nlohmann::json rep;
@@ -99,39 +98,39 @@ public:
         const size_t id = std::stoi(aUserId);
         rep[Dollars] = profiles[id].dollars;
         rep[Rubles] = profiles[id].rubles;
-        return rep.dump();
+        return rep;
     }
 
-    std::string ProcessSellRequest(const std::string& aUserId, long long price_, long long volume_)
+    nlohmann::json ProcessSellRequest(const std::string& aUserId, long long price_, long long volume_)
     {
-        if (UserExists(aUserId)) {
+        if (!UserExists(aUserId)) {
             return GetError("Error : User doesn't exist.\n");
         }
-        if (0 <= price_ || 0 <= volume_) {
-            return GetError("Negative price or volume.\n");
+        if (price_ <= 0|| volume_ <= 0) {
+            return GetError("Incorrect price or volume.\n");
         }
         const size_t id = std::stoi(aUserId);
         ProcessSell(id, price_, volume_);
         nlohmann::json rep;
         rep[MsgType] = MessageTypes::Sell;
         rep[Message] = "Processed\n";
-        return rep.dump();
+        return rep;
     }
 
-    std::string ProcessBuyRequest(const std::string& aUserId, long long price_, long long volume_)
+    nlohmann::json ProcessBuyRequest(const std::string& aUserId, long long price_, long long volume_)
     {
-        if (UserExists(aUserId)) {
+        if (!UserExists(aUserId)) {
             return GetError("Error : User doesn't exist.\n");
         }
-        if (0 <= price_ || 0 <= volume_) {
-            return GetError("Negative price or volume.\n");
+        if (price_ <= 0|| volume_ <= 0) {
+            return GetError("Incorrect price or volume.\n");
         }
         const size_t id = std::stoi(aUserId);
         ProcessBuy(id, price_, volume_);
         nlohmann::json rep;
         rep[MsgType] = MessageTypes::Buy;
         rep[Message] = "Processed\n";
-        return rep.dump();
+        return rep;
     }
 private:
     struct profileType {
@@ -317,38 +316,37 @@ public:
             data_[bytes_transferred] = '\0';
 
             nlohmann::json j = nlohmann::json::parse(data_);
-            auto reqType = j[MsgType];
-            std::string reply = "";
-            if (reqType == MessageTypes::Registration)
-            {
-                reply = GetCore().RegisterNewUser(j[Message]);
-            } else if (reqType == MessageTypes::Hello)
-            {
-                reply = GetCore().GetHello(j[UserId]);
+            MessageTypes reqType = static_cast<MessageTypes>(j[MsgType]);
+            nlohmann::json rep;
+            switch(reqType) {
+                case MessageTypes::Registration:
+                    rep = GetCore().RegisterNewUser(j[Message]);
+                    break;
+                case MessageTypes::Hello:
+                    rep = GetCore().GetHello(j[UserId]);
+                    break;
+                case MessageTypes::ActiveRequests:
+                    rep = GetCore().GetActiveRequests(j[UserId]);
+                    break;
+                case MessageTypes::Deals:
+                    rep = GetCore().GetDeals(j[UserId]);
+                    break;
+                case MessageTypes::Balance:
+                    rep = GetCore().GetBalance(j[UserId]);
+                    break;
+                case MessageTypes::Sell:
+                    rep = GetCore().ProcessSellRequest(j[UserId], j[Price], j[Volume]);
+                    break;
+                case MessageTypes::Buy:
+                    rep = GetCore().ProcessBuyRequest(j[UserId], j[Price], j[Volume]);
+                    break;
+                default:
+                {
+                    rep = GetCore().GetError("Error! Unknown request.\n");
+                    break;
+                }
             }
-            else if (reqType == MessageTypes::ActiveRequests)
-            {
-                reply = GetCore().GetActiveRequests(j[UserId]);
-            }
-            else if (reqType == MessageTypes::Deals)
-            {
-                reply = GetCore().GetDeals(j[UserId]);
-            }
-            else if (reqType == MessageTypes::Balance)
-            {
-                reply = GetCore().GetBalance(j[UserId]);
-            }
-            else if (reqType == MessageTypes::Sell)
-            {
-                reply = GetCore().ProcessSellRequest(j[UserId], j[Price], j[Volume]);
-            }
-            else if (reqType == MessageTypes::Buy)
-            {
-                reply = GetCore().ProcessBuyRequest(j[UserId], j[Price], j[Volume]);
-            } else {
-                reply = GetCore().GetError("Error! Unknown request.\n");
-            }
-
+            std::string reply = rep.dump();
             boost::asio::async_write(socket_,
                 boost::asio::buffer(reply, reply.size()),
                 boost::bind(&session::handle_write, this,
