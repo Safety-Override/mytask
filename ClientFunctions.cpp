@@ -26,11 +26,22 @@ std::string ReadMessage(tcp::socket& aSocket)
 }
 
 
-nlohmann::json RegistrationRequest(std::string& name)
+nlohmann::json RegistrationRequest(std::string& name, std::string& login, std::string& password)
 {
     nlohmann::json req;
     req[MsgType] = MessageTypes::Registration;
-    req[Message] = name;
+    req[UserName] = name;
+    req[Login] = login;
+    req[Password] = password;
+    return req;
+}
+
+nlohmann::json LoginWithPasswordRequest(std::string& login, std::string& password)
+{
+    nlohmann::json req;
+    req[MsgType] = MessageTypes::Authorization;
+    req[Login] = login;
+    req[Password] = password;
     return req;
 }
 
@@ -80,6 +91,27 @@ nlohmann::json BuyRequest(long long price_, long long volume_)
     return req;
 }
 
+nlohmann::json QuotationsRequest()
+{
+    nlohmann::json req;
+    req[MsgType] = MessageTypes::Quotations;
+    return req;
+}
+
+nlohmann::json DeleteRequest(long long price_, long long volume_, bool isSellReq_)
+{
+    nlohmann::json req;
+    req[MsgType] = MessageTypes::Delete;
+    req[Price] = price_;
+    req[Volume] = volume_;
+    if (isSellReq_) {
+        req[ReqType] = MessageTypes::Sell;
+    } else {
+        req[ReqType] = MessageTypes::Buy;
+    }
+    return req;
+}
+
 ////////////////////////////////////////////////////
 
 std::string ErrorResponse(nlohmann::json& j)
@@ -89,7 +121,12 @@ std::string ErrorResponse(nlohmann::json& j)
 
 std::string RegistrationResponse(nlohmann::json& j)
 {
-    return j[Message];
+    return j[UserId];
+}
+
+std::string LoginWithPasswordResponse(nlohmann::json& j)
+{
+    return j[UserId];
 }
 
 std::string HelloResponse(nlohmann::json& j)
@@ -145,6 +182,29 @@ std::string SellResponse(nlohmann::json& j)
 }
 
 std::string BuyResponse(nlohmann::json& j)
+{
+    return j[Message];
+}
+
+std::string QuotationsResponse(nlohmann::json& j)
+{
+    long long buyPrice = j[SellRequests][Price];//sell offer price == buy price
+    long long sellPrice = j[BuyRequests][Price];
+    std::string reply = "";
+    if (buyPrice == -1) {
+        reply += "No sell offers\n";
+    } else {
+        reply += "Buy price : " + std::to_string(buyPrice) + "\n";
+    }
+    if (sellPrice == -1) {
+        reply += "No buy offers\n";
+    } else {
+        reply += "Sell price : " + std::to_string(sellPrice) + "\n";
+    }
+    return reply;
+}
+
+std::string DeleteResponse(nlohmann::json& j)
 {
     return j[Message];
 }

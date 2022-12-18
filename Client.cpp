@@ -21,27 +21,61 @@ int main()
         tcp::socket s(io_service);
         s.connect(*iterator);
 
-        std::cout << "Hello! Enter your name: ";
-        std::string my_name;
-        std::cin >> my_name;
-        nlohmann::json request = RegistrationRequest(my_name);
-        SendMessage(s, "0", request);
-        nlohmann::json response = nlohmann::json::parse(ReadMessage(s));
-        if (response[MsgType] == MessageTypes::Error) {
-            std::cout << ErrorResponse(response);
-            exit(1);
+        std::cout << "Enter 1 to register, enter 2 to login.\n";
+        int choice;
+        std::cin >> choice;
+        std::string my_id = "";
+        nlohmann::json request;
+        nlohmann::json response;
+        if (choice == 1) {
+            std::cout << "Hello! Enter your name: ";
+            std::string my_name;
+            std::cin >> my_name;
+            std::cout << "Enter new login: ";
+            std::string my_login;
+            std::cin >> my_login;
+            std::cout << "Enter new password: ";
+            std::string my_password;
+            std::cin >> my_password;
+
+            request = RegistrationRequest(my_name, my_login, my_password);
+            SendMessage(s, "0", request);
+            response = nlohmann::json::parse(ReadMessage(s));
+            if (response[MsgType] == MessageTypes::Error) {
+                std::cout << ErrorResponse(response);
+                exit(1);
+            }
+            my_id = RegistrationResponse(response);
+        } else if (choice == 2) {
+            std::cout << "Enter new login: ";
+            std::string my_login;
+            std::cin >> my_login;
+            std::cout << "Enter new password: ";
+            std::string my_password;
+            std::cin >> my_password;
+
+            request = LoginWithPasswordRequest(my_login, my_password);
+            SendMessage(s, "0", request);
+            response = nlohmann::json::parse(ReadMessage(s));
+            if (response[MsgType] == MessageTypes::Error) {
+                std::cout << ErrorResponse(response);
+                exit(2);
+            }
+            my_id = LoginWithPasswordResponse(response);
         }
-        std::string my_id = RegistrationResponse(response);
+
         while (true)
         {
             std::cout << "Menu:\n"
-                         "1) Hello Request\n"
+                         "1) Hello\n"
                          "2) Active requests\n"
                          "3) All deals\n"
                          "4) Balance\n"
                          "5) Create Sell request\n"
                          "6) Create Buy request\n"
-                         "7) Exit\n"
+                         "7) Quotations\n"
+                         "8) Delete request\n"
+                         "9) Exit\n"
                          << std::endl;
 
             short menu_option_num;
@@ -92,6 +126,29 @@ int main()
                 }
                 case 7:
                 {
+                    request = QuotationsRequest();
+                    break;
+                }
+                case 8:
+                {
+                    std::cout << "Enter price :\n";
+                    long long price_;
+                    std::cin >> price_;
+                    std::cout << "Enter volume :\n";
+                    long long volume_;
+                    std::cin >> volume_;
+                    std::cout << "Enter request type : \"sell\" or \"buy\" :\n";
+                    std::string reqType;
+                    std::cin >> reqType;
+                    while (reqType != "sell" && reqType != "buy") {
+                        std::cout << "Enter request type : \"sell\" or \"buy\" :\n";
+                        std::cin >> reqType;
+                    }
+                    request = DeleteRequest(price_, volume_, reqType == "sell");
+                    break;
+                }
+                case 9:
+                {
                     exit(0);
                     break;
                 }
@@ -125,6 +182,12 @@ int main()
                     break;
                 case MessageTypes::Buy:
                     std::cout << BuyResponse(response);
+                    break;
+                case MessageTypes::Quotations:
+                    std::cout << QuotationsResponse(response);
+                    break;
+                case MessageTypes::Delete:
+                    std::cout << DeleteResponse(response);
                     break;
                 default:
                 {

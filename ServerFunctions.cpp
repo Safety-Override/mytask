@@ -12,12 +12,29 @@ class Core
 {
 public:
     friend class CoreTest;
-    nlohmann::json RegisterNewUser(const std::string& aUserName) {
-        size_t newUserId = profiles.size();
-        profiles[newUserId].userName = aUserName;
+    nlohmann::json RegisterNewUserWithAuth(const std::string& aUserName_, 
+                                   const std::string& login_, 
+                                   const std::string& password_) {
+        if (authData.find(login_) != authData.end()) {
+            return GetError("Login already exists.\n");
+        }
+        nlohmann::json rep = RegisterNewUser(aUserName_);
+        authData[login_].password = password_;
+        authData[login_].userId = std::stoi(static_cast<std::string>(rep[UserId]));
+        return rep;
+    }
+
+    nlohmann::json LoginWithPassword(const std::string& login_, 
+                                     const std::string& password_) {
+        if (authData.find(login_) == authData.end()) {
+            return GetError("Wrong login or password.\n");
+        }
+        if (authData[login_].password != password_) {
+            return GetError("Wrong login or password.\n");
+        }
         nlohmann::json rep;
-        rep[MsgType] = MessageTypes::Registration;
-        rep[Message] = std::to_string(newUserId);
+        rep[MsgType] = MessageTypes::Authorization;
+        rep[UserId] = std::to_string(authData[login_].userId);
         return rep;
     }
 
@@ -133,12 +150,78 @@ public:
         rep[Message] = "Processed.\n";
         return rep;
     }
+
+    nlohmann::json ProcessQuotationsRequest(const std::string& aUserId)
+    {
+        if (!UserExists(aUserId)) {
+            return GetError("Error : User doesn't exist.\n");
+        }
+        const size_t id = std::stoi(aUserId);
+
+        nlohmann::json rep;
+        rep[MsgType] = MessageTypes::Quotations;
+        if (sellQueue.empty()) {
+            rep[SellRequests][Price] = -1;
+        } else {
+            rep[SellRequests][Price] = sellQueue.begin()->price;
+        }
+        if (buyQueue.empty()) {
+            rep[BuyRequests][Price] = -1;
+        } else {
+            rep[BuyRequests][Price] = buyQueue.begin()->price;
+        }
+        return rep;
+    }
+
+    nlohmann::json ProcessDeleteRequest(const std::string& aUserId, long long price_, long long volume_, MessageTypes reqType_)
+    {
+        if (!UserExists(aUserId)) {
+            return GetError("Error : User doesn't exist.\n");
+        }
+        const size_t id = std::stoi(aUserId);
+
+        nlohmann::json rep;
+        if (reqType_ == MessageTypes::Sell) {
+            for (auto elem : sellQueue) {
+                if (elem.userId == id &&
+                    elem.price == price_ &&
+                    elem.volume == volume_) {
+                    sellQueue.erase(elem);
+                    rep[MsgType] = MessageTypes::Delete;
+                    rep[Message] = "Request deleted.\n";
+                    return rep;
+                }
+            }
+            return GetError("Request not found.\n");
+        }
+        if (reqType_ == MessageTypes::Buy) {
+            for (auto elem : buyQueue) {
+                if (elem.userId == id &&
+                    elem.price == price_ &&
+                    elem.volume == volume_) {
+                    buyQueue.erase(elem);
+                    rep[MsgType] = MessageTypes::Delete;
+                    rep[Message] = "Request deleted.\n";
+                    return rep;
+                }
+            }
+            return GetError("Request not found.\n");
+        }
+        return GetError("Unknown sell or buy request type.\n");
+    }
+
+
 private:
     struct profileType {
         long long dollars = 0;
         long long rubles = 0;
         std::string userName;
     };
+    struct loginData {
+        std::string password;
+        size_t userId;
+    };
+    std::unordered_map<std::string, loginData> authData;
     std::unordered_map<size_t, profileType> profiles;
     struct logType {
         long long price;
@@ -279,6 +362,15 @@ private:
         const size_t id = std::stoi(aUserId);
         return profiles.find(id) != profiles.end();
     }
+
+    nlohmann::json RegisterNewUser(const std::string& aUserName_) {
+        size_t newUserId = profiles.size();
+        profiles[newUserId].userName = aUserName_;
+        nlohmann::json rep;
+        rep[MsgType] = MessageTypes::Registration;
+        rep[UserId] = std::to_string(newUserId);
+        return rep;
+    }
 };
 
 Core& GetCore()
@@ -317,11 +409,14 @@ public:
             data_[bytes_transferred] = '\0';
 
             nlohmann::json j = nlohmann::json::parse(data_);
-            MessageTypes reqType = static_cast<MessageTypes>(j[MsgType]);
+            MessageTypes requestType = static_cast<MessageTypes>(j[MsgType]);
             nlohmann::json rep;
-            switch(reqType) {
+            switch(requestType) {
                 case MessageTypes::Registration:
-                    rep = GetCore().RegisterNewUser(j[Message]);
+                    rep = GetCore().RegisterNewUserWithAuth(j[UserName], j[Login], j[Password]);
+                    break;
+                case MessageTypes::Authorization:
+                    rep = GetCore().LoginWithPassword(j[Login], j[Password]);
                     break;
                 case MessageTypes::Hello:
                     rep = GetCore().GetHello(j[UserId]);
@@ -340,6 +435,12 @@ public:
                     break;
                 case MessageTypes::Buy:
                     rep = GetCore().ProcessBuyRequest(j[UserId], j[Price], j[Volume]);
+                    break;
+                case MessageTypes::Quotations:
+                    rep = GetCore().ProcessQuotationsRequest(j[UserId]);
+                    break;
+                case MessageTypes::Delete:
+                    rep = GetCore().ProcessDeleteRequest(j[UserId], j[Price], j[Volume], j[ReqType]);
                     break;
                 default:
                 {

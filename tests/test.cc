@@ -14,8 +14,12 @@ TEST(ClientTest, HelloTest) {
 
 TEST(ClientTest, RegistrationRequestTest) {
   std::string name = "0000_*(*$&$?///}{[TestUser00____";
-  nlohmann::json j = RegistrationRequest(name);
-  ASSERT_EQ(j[Message], "0000_*(*$&$?///}{[TestUser00____");
+  std::string login = "0000_*(*$&$?///}{[TestUser00____";
+  std::string password = "0000_*(*$&$?///}{[TestUser00____";
+  nlohmann::json j = RegistrationRequest(name, login, password);
+  ASSERT_EQ(j[UserName], "0000_*(*$&$?///}{[TestUser00____");
+  ASSERT_EQ(j[Login], "0000_*(*$&$?///}{[TestUser00____");
+  ASSERT_EQ(j[Password], "0000_*(*$&$?///}{[TestUser00____");
   ASSERT_EQ(j[MsgType], MessageTypes::Registration);
 }
 
@@ -62,7 +66,7 @@ TEST(ClientTest, ErrorResponseTest) {
 
 TEST(ClientTest, RegistrationResponseTest) {
   nlohmann::json j;
-  j[Message] = std::to_string(0);
+  j[UserId] = std::to_string(0);
   std::string rep = "0";
   ASSERT_EQ(RegistrationResponse(j), rep);
 }
@@ -191,7 +195,7 @@ protected:
       RegisterNewUserTestResult result;
       nlohmann::json reply = core.RegisterNewUser(name);
       result.name1 = core.profiles[0].userName;
-      std::string strId = reply[Message];
+      std::string strId = reply[UserId];
       result.name2 = core.GetUserName(strId);
       result.reply = reply;
       return result;
@@ -233,7 +237,7 @@ protected:
     GetDealsTestResult GetDealsTestFunction(std::vector<fakeLogType> myLogs, std::string names[4]) {
       std::string ids[4];
       for (int i = 0; i < 4; ++i) {
-        ids[i] = core.RegisterNewUser(names[i])[Message];
+        ids[i] = core.RegisterNewUser(names[i])[UserId];
       }
       GetDealsTestResult result;
       core.logs.resize(myLogs.size());
@@ -255,7 +259,7 @@ protected:
       std::string name = "theName";
       std::string id = "0";
       result.reply.push_back(core.GetBalance(id));
-      id = core.RegisterNewUser(name)[Message];
+      id = core.RegisterNewUser(name)[UserId];
       result.reply.push_back(core.GetBalance(id));
       core.profiles[std::stoi(id)].dollars = dollars;
       core.profiles[std::stoi(id)].rubles = rubles;
@@ -268,8 +272,8 @@ protected:
       std::string id1 = "0";
       std::string name2 = "buyerman";
       std::string id2 = "1";
-      id1 = core.RegisterNewUser(name1)[Message];
-      id2 = core.RegisterNewUser(name2)[Message];
+      id1 = core.RegisterNewUser(name1)[UserId];
+      id2 = core.RegisterNewUser(name2)[UserId];
       core.buyQueue.clear();
       core.sellQueue.clear();
       for (auto elem : vBuyQueue) {
@@ -308,8 +312,8 @@ protected:
       std::string id1 = "0";
       std::string name2 = "sellerman";
       std::string id2 = "1";
-      id1 = core.RegisterNewUser(name1)[Message];
-      id2 = core.RegisterNewUser(name2)[Message];
+      id1 = core.RegisterNewUser(name1)[UserId];
+      id2 = core.RegisterNewUser(name2)[UserId];
       core.buyQueue.clear();
       core.sellQueue.clear();
       for (auto elem : vSellQueue) {
@@ -353,7 +357,7 @@ TEST_F(CoreTest, RegisterNewUserTest) {
   ASSERT_EQ(result.name1, name);
   ASSERT_EQ(result.name2, name);
   ASSERT_EQ(result.reply[MsgType], MessageTypes::Registration);
-  ASSERT_EQ(result.reply[Message], "0");
+  ASSERT_EQ(result.reply[UserId], "0");
 }
 
 TEST_F(CoreTest, GetErrorTest) {

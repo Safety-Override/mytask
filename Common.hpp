@@ -30,6 +30,10 @@ constexpr char Volume[] = "Volume";
 constexpr char Rubles[] = "Rubles";
 constexpr char Dollars[] = "Dollars";
 
+constexpr char Login[] = "Login";
+constexpr char Password[] = "Password";
+constexpr char UserName[] = "UserName";
+
 constexpr char UserId[] = "UserId";
 constexpr char DealsList[] = "DealsList";
 constexpr char ReqType[] = "ReqType";
@@ -42,12 +46,15 @@ enum class MessageTypes
 {
     Error, 
     Registration, 
+    Authorization,
     Hello, 
     ActiveRequests, 
     Deals, 
     Balance, 
     Sell, 
-    Buy
+    Buy,
+    Quotations,
+    Delete
 };
 
 #endif //CLIENSERVERECN_COMMON_HPP
