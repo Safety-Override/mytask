@@ -11,6 +11,7 @@ using boost::asio::ip::tcp;
 class Core
 {
 public:
+    friend class CoreTest;
     nlohmann::json RegisterNewUser(const std::string& aUserName) {
         size_t newUserId = profiles.size();
         profiles[newUserId].userName = aUserName;
