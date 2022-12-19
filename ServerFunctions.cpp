@@ -13,8 +13,8 @@ class Core
 public:
     friend class CoreTest;
     nlohmann::json RegisterNewUserWithAuth(const std::string& aUserName_, 
-                                   const std::string& login_, 
-                                   const std::string& password_) {
+                                           const std::string& login_, 
+                                           const std::string& password_) {
         if (authData.find(login_) != authData.end()) {
             return GetError("Login already exists.\n");
         }

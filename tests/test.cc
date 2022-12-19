@@ -13,14 +13,23 @@ TEST(ClientTest, HelloTest) {
 
 
 TEST(ClientTest, RegistrationRequestTest) {
-  std::string name = "0000_*(*$&$?///}{[TestUser00____";
-  std::string login = "0000_*(*$&$?///}{[TestUser00____";
-  std::string password = "0000_*(*$&$?///}{[TestUser00____";
+  std::string name = "1000_*(*$&$?///}{[TestUser00____";
+  std::string login = "2000_*(*$&$?///}{[TestUser00____";
+  std::string password = "3000_*(*$&$?///}{[TestUser00____";
   nlohmann::json j = RegistrationRequest(name, login, password);
-  ASSERT_EQ(j[UserName], "0000_*(*$&$?///}{[TestUser00____");
-  ASSERT_EQ(j[Login], "0000_*(*$&$?///}{[TestUser00____");
-  ASSERT_EQ(j[Password], "0000_*(*$&$?///}{[TestUser00____");
+  ASSERT_EQ(j[UserName], "1000_*(*$&$?///}{[TestUser00____");
+  ASSERT_EQ(j[Login], "2000_*(*$&$?///}{[TestUser00____");
+  ASSERT_EQ(j[Password], "3000_*(*$&$?///}{[TestUser00____");
   ASSERT_EQ(j[MsgType], MessageTypes::Registration);
+}
+
+TEST(ClientTest, LoginWithPasswordRequestTest) {
+  std::string login = "1000_*(*$&$?///}{[TestUser00____";
+  std::string password = "2000_*(*$&$?///}{[TestUser00____";
+  nlohmann::json j = LoginWithPasswordRequest(login, password);
+  ASSERT_EQ(j[Login], "1000_*(*$&$?///}{[TestUser00____");
+  ASSERT_EQ(j[Password], "2000_*(*$&$?///}{[TestUser00____");
+  ASSERT_EQ(j[MsgType], MessageTypes::Authorization);
 }
 
 TEST(ClientTest, HelloRequestTest) {
@@ -57,6 +66,24 @@ TEST(ClientTest, BuyRequestTest) {
   ASSERT_EQ(j[Volume], 3);
 }
 
+TEST(ClientTest, QuotationsRequestTest) {
+  nlohmann::json j = QuotationsRequest();
+  ASSERT_EQ(j[MsgType], MessageTypes::Quotations);
+}
+
+TEST(ClientTest, DeleteRequestTest) {
+  nlohmann::json j = DeleteRequest(7, 3, true);
+  ASSERT_EQ(j[MsgType], MessageTypes::Delete);
+  ASSERT_EQ(j[ReqType], MessageTypes::Sell);
+  ASSERT_EQ(j[Price], 7);
+  ASSERT_EQ(j[Volume], 3);
+  j = DeleteRequest(6, 2, false);
+  ASSERT_EQ(j[MsgType], MessageTypes::Delete);
+  ASSERT_EQ(j[ReqType], MessageTypes::Buy);
+  ASSERT_EQ(j[Price], 6);
+  ASSERT_EQ(j[Volume], 2);
+}
+
 TEST(ClientTest, ErrorResponseTest) {
   nlohmann::json j;
   std::string errorMsg = "Custom Error.\n";
@@ -69,6 +96,13 @@ TEST(ClientTest, RegistrationResponseTest) {
   j[UserId] = std::to_string(0);
   std::string rep = "0";
   ASSERT_EQ(RegistrationResponse(j), rep);
+}
+
+TEST(ClientTest, LoginWithPasswordResponseTest) {
+  nlohmann::json j;
+  j[UserId] = std::to_string(0);
+  std::string rep = "0";
+  ASSERT_EQ(LoginWithPasswordResponse(j), rep);
 }
 
 TEST(ClientTest, HelloResponseTest) {
@@ -133,12 +167,66 @@ TEST(ClientTest, BuyResponseTest) {
   ASSERT_EQ(BuyResponse(j), ans);
 }
 
+TEST(ClientTest, QuotationsResponseTest) {
+  nlohmann::json j;
+  long long buyPrice = 123;
+  long long sellPrice = 321;
+  j[SellRequests][Price] = buyPrice;//sell offer price == buy price
+  j[BuyRequests][Price] = sellPrice;
+  std::string reply = "Buy price : " + std::to_string(buyPrice) + "\n";
+  reply += "Sell price : " + std::to_string(sellPrice) + "\n";
+  ASSERT_EQ(QuotationsResponse(j), reply);
+
+  buyPrice = -1;
+  sellPrice = 321;
+  j[SellRequests][Price] = buyPrice;//sell offer price == buy price
+  j[BuyRequests][Price] = sellPrice;
+  reply = "No sell offers\n";
+  reply += "Sell price : " + std::to_string(sellPrice) + "\n";
+  ASSERT_EQ(QuotationsResponse(j), reply);
+
+  buyPrice = 123;
+  sellPrice = -1;
+  j[SellRequests][Price] = buyPrice;//sell offer price == buy price
+  j[BuyRequests][Price] = sellPrice;
+  reply = "Buy price : " + std::to_string(buyPrice) + "\n";
+  reply += "No buy offers\n";
+  ASSERT_EQ(QuotationsResponse(j), reply);
+
+  buyPrice = -1;
+  sellPrice = -1;
+  j[SellRequests][Price] = buyPrice;//sell offer price == buy price
+  j[BuyRequests][Price] = sellPrice;
+  reply = "No sell offers\n";
+  reply += "No buy offers\n";
+  ASSERT_EQ(QuotationsResponse(j), reply);
+}
+
+TEST(ClientTest, DeleteResponseTest) {
+  nlohmann::json j;
+  j[Message] = "Request deleted.\n";
+  std::string ans = j[Message];
+  ASSERT_EQ(DeleteResponse(j), ans);
+}
+
 //////////////////////////////////////////////////////////
 
 struct RegisterNewUserTestResult {
   std::string name1;
   std::string name2;
   nlohmann::json reply;
+};
+
+struct RegisterNewUserWithAuthTestResult {
+  std::string password;
+  std::string id;
+  nlohmann::json reply;
+};
+
+struct LoginWithPasswordTestResult {
+  std::string password;
+  std::string id;
+  std::vector<nlohmann::json> reply;
 };
 
 struct GetErrorTestResult {
@@ -180,6 +268,18 @@ struct ProcessBuyRequestTestResult {
   std::vector<fakeRequest> SellQueueState;
 };
 
+struct ProcessQuotationsRequestTestResult {
+  std::vector<nlohmann::json> reply;
+  long long sellPrice;
+  long long buyPrice;
+};
+
+struct ProcessDeleteRequestTestResult {
+  std::vector<nlohmann::json> reply;
+  std::vector<bool> foundBeforeDeletion;
+  std::vector<bool> foundAfterDeletion;
+};
+
 struct fakeLogType {
   long long price;
   long long volume;
@@ -191,6 +291,14 @@ struct fakeLogType {
 class CoreTest : public ::testing::Test
 {
 protected:
+    RegisterNewUserWithAuthTestResult RegisterNewUserWithAuthTestFunction(const std::string& aUserName_, const std::string& login_, const std::string& password_) {
+      RegisterNewUserWithAuthTestResult result;
+      result.reply = core.RegisterNewUserWithAuth(aUserName_, login_, password_);
+      result.id = std::to_string(core.authData[login_].userId);
+      result.password = core.authData[login_].password;
+      return result;
+    }
+
     RegisterNewUserTestResult RegisterNewUserTestFunction(std::string name) { 
       RegisterNewUserTestResult result;
       nlohmann::json reply = core.RegisterNewUser(name);
@@ -198,6 +306,18 @@ protected:
       std::string strId = reply[UserId];
       result.name2 = core.GetUserName(strId);
       result.reply = reply;
+      return result;
+    }
+
+    LoginWithPasswordTestResult LoginWithPasswordTestFunction(std::string login, std::string password) { 
+      LoginWithPasswordTestResult result;
+      result.reply.push_back(core.LoginWithPassword(login, password));
+      std::string rname = "user11";
+      core.authData[login].password = password;
+      core.authData[login].userId = 5;
+      result.id = std::to_string(core.authData[login].userId);
+      result.password = core.authData[login].password;
+      result.reply.push_back(core.LoginWithPassword(login, password));
       return result;
     }
 
@@ -347,9 +467,70 @@ protected:
       return result;
     }
 
+    ProcessQuotationsRequestTestResult ProcessQuotationsRequestTestFunction() {
+      ProcessQuotationsRequestTestResult result;
+      std::string name1 = "buyerman";
+      std::string strid = "0";
+      strid = core.RegisterNewUser(name1)[UserId];
+      size_t id = 0;
+      result.reply.push_back(core.ProcessQuotationsRequest(strid));
+      Core::sellReq temp1;
+      temp1.price = 5;
+      temp1.timeStep = 0;
+      temp1.userId = 0;
+      core.sellQueue.insert(temp1);
+      result.reply.push_back(core.ProcessQuotationsRequest(strid));
+      Core::buyReq temp2;
+      temp2.price = 2;
+      temp2.timeStep = 1;
+      temp2.userId = 0;
+      core.buyQueue.insert(temp2);
+      result.reply.push_back(core.ProcessQuotationsRequest(strid));
+      return result;
+    }
+
+    ProcessDeleteRequestTestResult ProcessDeleteRequestTestFunction() {
+      ProcessDeleteRequestTestResult result;
+      std::string name1 = "buyerman";
+      std::string strid = "0";
+      strid = core.RegisterNewUser(name1)[UserId];
+      result.foundBeforeDeletion.push_back(!core.sellQueue.empty());
+      result.reply.push_back(core.ProcessDeleteRequest(strid, 5, 2, MessageTypes::Sell));
+      result.foundAfterDeletion.push_back(!core.sellQueue.empty());
+      Core::sellReq temp1;
+      temp1.price = 5;
+      temp1.timeStep = 0;
+      temp1.userId = 0;
+      temp1.volume = 2;
+      core.sellQueue.insert(temp1);
+      result.foundBeforeDeletion.push_back(!core.sellQueue.empty());
+      result.reply.push_back(core.ProcessDeleteRequest(strid, 5, 2, MessageTypes::Sell));
+      result.foundAfterDeletion.push_back(!core.sellQueue.empty());
+      Core::buyReq temp2;
+      temp2.price = 2;
+      temp2.timeStep = 1;
+      temp2.userId = 0;
+      temp2.volume = 1;
+      core.buyQueue.insert(temp2);
+      result.foundBeforeDeletion.push_back(!core.buyQueue.empty());
+      result.reply.push_back(core.ProcessDeleteRequest(strid, 2, 1, MessageTypes::Buy));
+      result.foundAfterDeletion.push_back(!core.buyQueue.empty());
+      return result;
+    }
 private:
     Core core;
 };
+
+TEST_F(CoreTest, RegisterNewUserWithAuthTest) {
+  std::string name = "0000_*(*$&$?///}{[TestUser00____";
+  std::string login = "0000_*(*$&$?///}{[TestUser00____";
+  std::string password = "0000_*(*$&$?///}{[TestUser00____";
+  RegisterNewUserWithAuthTestResult result = RegisterNewUserWithAuthTestFunction(name, login, password);
+  ASSERT_EQ(result.id, result.reply[UserId]);
+  ASSERT_EQ(result.password, password);
+  ASSERT_EQ(result.reply[MsgType], MessageTypes::Registration);
+  ASSERT_EQ(result.reply[UserId], "0");
+}
 
 TEST_F(CoreTest, RegisterNewUserTest) {
   std::string name = "0000_*(*$&$?///}{[TestUser00____";
@@ -358,6 +539,17 @@ TEST_F(CoreTest, RegisterNewUserTest) {
   ASSERT_EQ(result.name2, name);
   ASSERT_EQ(result.reply[MsgType], MessageTypes::Registration);
   ASSERT_EQ(result.reply[UserId], "0");
+}
+
+TEST_F(CoreTest, LoginWithPasswordTest) {
+  std::string login = "01000_*(*$&$?///}{[TestUser00____";
+  std::string password = "02000_*(*$&$?///}{[TestUser00____";
+  LoginWithPasswordTestResult result = LoginWithPasswordTestFunction(login, password);
+  ASSERT_EQ(result.id, result.reply[1][UserId]);
+  ASSERT_EQ(result.password, password);
+  ASSERT_EQ(result.reply[0][MsgType], MessageTypes::Error);
+  ASSERT_EQ(result.reply[1][MsgType], MessageTypes::Authorization);
+  ASSERT_EQ(result.reply[1][UserId], "5");
 }
 
 TEST_F(CoreTest, GetErrorTest) {
@@ -548,4 +740,32 @@ TEST_F(CoreTest, ProcessBuyRequestTest) {
   ASSERT_EQ(result.BuyQueueState[0].volume, 1);
   ASSERT_EQ(result.reply[1][Rubles], -40);
   ASSERT_EQ(result.reply[1][Dollars], 12);
+}
+
+TEST_F(CoreTest, ProcessQuotationsRequestTest) {
+  ProcessQuotationsRequestTestResult result = ProcessQuotationsRequestTestFunction();
+  
+  ASSERT_EQ(result.reply[0][MsgType], MessageTypes::Quotations);
+  ASSERT_EQ(result.reply[0][SellRequests][Price], -1);
+  ASSERT_EQ(result.reply[0][BuyRequests][Price], -1);
+  ASSERT_EQ(result.reply[1][SellRequests][Price], 5);
+  ASSERT_EQ(result.reply[1][BuyRequests][Price], -1);
+  ASSERT_EQ(result.reply[2][SellRequests][Price], 5);
+  ASSERT_EQ(result.reply[2][BuyRequests][Price], 2);
+}
+
+TEST_F(CoreTest, ProcessDeleteRequestTest) {
+  ProcessDeleteRequestTestResult result = ProcessDeleteRequestTestFunction();
+  
+  ASSERT_EQ(result.foundBeforeDeletion[0], false);
+  ASSERT_EQ(result.reply[0][MsgType], MessageTypes::Error);
+  ASSERT_EQ(result.foundAfterDeletion[0], false);
+
+  ASSERT_EQ(result.foundBeforeDeletion[1], true);
+  ASSERT_EQ(result.reply[1][MsgType], MessageTypes::Delete);
+  ASSERT_EQ(result.foundAfterDeletion[1], false);
+
+  ASSERT_EQ(result.foundBeforeDeletion[2], true);
+  ASSERT_EQ(result.reply[2][MsgType], MessageTypes::Delete);
+  ASSERT_EQ(result.foundAfterDeletion[2], false);
 }
